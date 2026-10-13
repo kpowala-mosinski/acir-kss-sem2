@@ -1,48 +1,61 @@
-3 Funkcja kary dla ograniczeń nierównościowych
-W zadaniu należy zbadać zewnętrzną funkcję kary dla ograniczeń z Zadania 2 oraz wpływ wartości
-współczynnika kary na kształt funkcji minimalizowanej i wynik optymalizacji.
-3.1 Wizualizacja zewnętrznej funkcji kary
-Dla czterech ograniczeń gi(x) ≤0 zdefiniuj
+nao-lab3 - instrukcja
+
+Wymagania ogólne:
+Każde zadanie należy rozwiązać za pomocą własnego kodu w Pythonie. Algorytmy optymalizacyjne wskazane w treści zadania mają zostać zaimplementowane samodzielnie.
+Nie wolno zastępować ich gotowymi procedurami zwracającymi rozwiązanie problemu, np. scipy.optimize.minimize lub analogicznymi funkcjami z bibliotek.
+Dopuszczalne są m.in. numpy do obliczeń numerycznych, pandas do przygotowania tabel wyników oraz matplotlib do wizualizacji.
+Program dla każdego zadania powinien po uruchomieniu:
+- wykonać wszystkie warianty obliczeń wskazane w treści zadania;
+- wyświetlić wymagane tabele wyników jako pandas.DataFrame;
+- wygenerować wymagane wykresy za pomocą matplotlib;
+Do tabel i logów nie należy dodawać niepotrzebnych informacji niewskazanych w treści danego zadania.
+
+3. Funkcja kary dla ograniczeń nierównościowych:
+W zadaniu należy zbadać zewnętrzną funkcję kary dla ograniczeń z Zadania 2 oraz wpływ wartości współczynnika kary na kształt funkcji minimalizowanej i wynik optymalizacji.
+
+3.1. Wizualizacja zewnętrznej funkcji kary:
+Dla czterech ograniczeń gi(x) ≤0 zdefiniuj 
 K(α,x) = α
 4∑︂
 i=1
-max(︁0,gi(x))︁2.
-Parametry obliczeń
-step_size = 0.01 początkowy rozmiar kroku;
-tol_x = 1e-4 tolerancja zmiany punktu;
-tol_f = 1e-4 tolerancja zmiany wartości funkcji;
-max_iter = 30000 maksymalna liczba głównych iteracji algorytmu;
-x0 ∈Φ punkt startowy leżący w obszarze dopuszczalnym.
+max(︁0,gi(x))︁2
+
+Parametry obliczeń"
+step_size = 0.01 - początkowy rozmiar kroku;
+tol_x = 1e-4 - tolerancja zmiany punktu;
+tol_f = 1e-4 - tolerancja zmiany wartości funkcji;
+max_iter = 30000 - maksymalna liczba głównych iteracji algorytmu;
+x0 ∈Φ - punkt startowy leżący w obszarze dopuszczalnym.
+
 Przygotuj wykresy dla dwóch wartości współczynnika kary:
 α = 10, α = 105.
+
 Zakres argumentów dla wszystkich wykresów:
 −2 ≤x1 ≤2, −3.5 ≤x2 ≤1.5.
+
 Wymagane wykresy funkcji K(α,x):
-•dla α = 10: wykres poziomicowy 2D z 10 poziomicami w zakresie od 0.1 do 49.1;
-•dla α = 105: wykres poziomicowy 2D z 10 poziomicami w zakresie od 10 do 40010;
-•dla obu wartości α: wykres powierzchniowy 3D z zakresem wartości 0 ≤K ≤40000.
-3.2 Wizualizacja funkcji faktycznie minimalizowanej
-Zdefiniuj
-P(α,x) = −fGold(x) + K(α,x).
-Porównaj funkcję P dla α = 10 i α = 105 w zakresie
-−2 ≤x1 ≤2, −3.5 ≤x2 ≤1.5.
+- dla α = 10: wykres poziomicowy 2D z 10 poziomicami w zakresie od 0.1 do 49.1;
+- dla α = 105: wykres poziomicowy 2D z 10 poziomicami w zakresie od 10 do 40010;
+- dla obu wartości α: wykres powierzchniowy 3D z zakresem wartości 0 ≤K ≤40000.
+
+3.2. Wizualizacja funkcji faktycznie minimalizowanej:
+Zdefiniuj P(α,x) = −fGold(x) + K(α,x).
+Porównaj funkcję P dla α = 10 i α = 105 w zakresie −2 ≤x1 ≤2, −3.5 ≤x2 ≤1.5.
+
 Dla α = 10 przygotuj:
-•wykres poziomicowy 2D z 10 poziomicami w zakresie od −4 ·104 do 0; trzy ostatnie poziomice
-ustaw odpowiednio na −100, −33 i −10;
-•wykres powierzchniowy 3D z zakresem wartości −4 ·104 ≤P ≤0.
+- wykres poziomicowy 2D z 10 poziomicami w zakresie od −4 ·104 do 0; trzy ostatnie poziomice ustaw odpowiednio na −100, −33 i −10;
+- wykres powierzchniowy 3D z zakresem wartości −4 ·104 ≤P ≤0.
+
 Dla α = 105 przygotuj:
-•wykres poziomicowy 2D z 10 poziomicami w zakresie od −2000 do 2000; w zestawie 10 poziomic
-wartości 5–8 ustaw odpowiednio na −100, −40, −10 i 111;
-•wykres powierzchniowy 3D z zakresem wartości −3000 ≤P ≤3000.
-3.3 Wpływ współczynnika kary i kroku początkowego
-Przyjmij α = 104 i przygotuj wykresy 2D i 3D funkcji P(α,x) z takim samym zakresem argumentów
-jak wyżej. Dla wykresu 2D zastosuj ustawienia jak dla przypadku α = 105. Dla wykresu 3D przyjmij
-podstawowo zakres
-−3000 ≤P ≤3000.
-W celu lepszego pokazania stromości funkcji można dodatkowo przygotować drugi widok z zakresem
-−4 ·104 ≤P ≤4 ·104.
+- wykres poziomicowy 2D z 10 poziomicami w zakresie od −2000 do 2000; w zestawie 10 poziomic wartości 5–8 ustaw odpowiednio na −100, −40, −10 i 111;
+- wykres powierzchniowy 3D z zakresem wartości −3000 ≤P ≤3000.
+
+3.3. Wpływ współczynnika kary i kroku początkowego:
+Przyjmij α = 104 i przygotuj wykresy 2D i 3D funkcji P(α,x) z takim samym zakresem argumentów jak wyżej. Dla wykresu 2D zastosuj ustawienia jak dla przypadku α = 105. Dla wykresu 3D przyjmij podstawowo zakres −3000 ≤P ≤3000.
+W celu lepszego pokazania stromości funkcji można dodatkowo przygotować drugi widok z zakresem −4 ·104 ≤P ≤4 ·104.
 Następnie zastosuj metodę Hooke’a–Jeevesa do minimalizacji P dla trzech zestawów danych:
-Parametry obliczeń
+
+Parametry obliczeń:
 Przyjmij tol_x = 1e-4, tol_f = 1e-4 oraz max_iter = 30000. Współczynnik funkcji kary
 wynosi α = 104. Wartość step_size i punkt startowy przyjmij zgodnie z tabelą.
 Tabela 1: Zestawy danych do badania metody Hooke’a–Jeevesa
