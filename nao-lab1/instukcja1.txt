@@ -1,0 +1,48 @@
+nao-lab1 - instrukcja
+
+Wymagania ogólne:
+Każde zadanie należy rozwiązać za pomocą własnego kodu w Pythonie. Algorytmy optymalizacyjne wskazane w treści zadania mają zostać zaimplementowane samodzielnie.
+Nie wolno zastępować ich gotowymi procedurami zwracającymi rozwiązanie problemu, np. scipy.optimize.minimize lub analogicznymi funkcjami z bibliotek.
+Dopuszczalne są m.in. numpy do obliczeń numerycznych, pandas do przygotowania tabel wyników oraz matplotlib do wizualizacji.
+Program dla każdego zadania powinien po uruchomieniu:
+- wykonać wszystkie warianty obliczeń wskazane w treści zadania;
+- wyświetlić wymagane tabele wyników jako pandas.DataFrame;
+- wygenerować wymagane wykresy za pomocą matplotlib;
+Do tabel i logów nie należy dodawać niepotrzebnych informacji niewskazanych w treści danego zadania.
+
+1. Minimalizacja bez ograniczeń funkcji wielomodalnej
+
+Dana jest funkcja Goldsteina-Price'a:
+f_Gold(x1, x2) = [1+(x1 + x2 + 1)^2 (19 - 14x1 + 3x1^2 - 14x2 + 6x1x2 +3x2^2)][30 + (2x1 3x2)^2 (18 - 32x1 + 12x1^2 + 48x2 - 36x1x2 + 27x2^2)]
+
+Funckja przyjmuje wartości całkowite w swoich minimach. Nalezy znaleźć cztery minima lokalne x* i odpowiadające im wartości f* = f_Gold(x*), a następnie wskazać minimum globalne.
+
+1.1. Implementacja funkcji i wizualuzacja:
+Parametry obliczeń:
+step_size = 0.1 - początkowy rozmiar kroku;
+tol_x = 1e-3 - tolerancja zmiany punktu, no. ||x^(k+1)-x^(k)||;
+tol_f = 1e-3 - tolerancja zmiany wartości funkcji algorytmu;
+max_iter = 30000 - maksymalna liczba iteracji algorytmu;
+x0 = [0, 0] - punkt początkowy poszukiwać.
+
+Zaimplementuj funkcję f_Gold i przygotuj:
+- wykres poziomicowy 2d dla -1 <= x1 <= 3, -1.6 <= x2 <= 1, z poziomicami 6, 14, 34, 64, 104, 154, 554, 854, 1104, 2954;
+- wykres powierzchniowy 3d w tym samym zakresie argumentów, z zakresem wartości 0 <= f <= 4000.
+
+1.2. Wyznaczenie czterech minimów lokalnych:
+Na podstawie wykresu 2d zidentyfikuj cztery obszary, w których mogą znajdować się minima lokalne. Dla każdego obszaru wybierz punkt startowy x0, który nie jest samym minimum.
+Wykonaj minimalizację , stosując:
+- metodę Simplex Neldera-Meada;
+- metodę gradientów sprzężonych (G-S) z gradientem estymowanym.
+
+Każdej z metod użyj co najmniej raz. Dla każdego uruchomienia pokaż na wykresie poziomicowym trajektorję kolejnych punktów algorytmu. Do wizualizacji przebiegu można zastosować 10 poziomic rozłożonych w zakresie od 10 do 1010.
+
+Wyniki wymagane po uruchomieniu:
+Wyświetl tabelę zawierającą: punkt startowy, metodę, x1*, x2*, f* oraz dokładność wyniku. Wyniki w tej tabeli podaj z dokładnością do 3 cyfr znaczących. Osobno wypisz minimum globalne i odpowiadającą mu wartość funkcji.
+
+1.3. Zachowanie algorytmów dla szczególnego punktu startowego:
+Powtórz minimalizację obiema metodami dla xs = [-0.4, -0.6].
+Przygotuj dodatkowo:
+- wykres poziomicowy 2d dla zakresu -0.6 <= x1 <= -0.1, -0.82 <= x2 <= -0.34, z 10 poziomicami w zakresie 21 <= f <= 39;
+- wykres powierzchniowy 3d dla tego samego zakresu argumentów i zakresu wartości 18 <= f <= 43.
+Na wykresie 2d zaznacz punkt xs oraz trajektorie obu algorytmów. Wyniki zapisz w tabeli o takim samym układzie jak w poprzednim podpunktcie i określ charakter punktu xs.
