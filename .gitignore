@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Srodowiska wirtualne
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
