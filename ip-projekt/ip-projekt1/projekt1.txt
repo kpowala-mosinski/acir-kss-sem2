@@ -1,7 +1,7 @@
-Projekt 1 – usuwanie zakłóceń impulsowych z nagrań muzycznych
-W plikach typu ‘wav’ zapisane są ok. 20 sekundowe fragmenty nagrań muzycznych z dodanymi 
-(sztucznie) zakłóceniami impulsowymi (próbki reprezentowana przez 16-bitowe słowa, częstotliwość
-próbkowania 22050 Hz). Napisać program usuwający zakłócenia z nagrań muzycznych.
+Projekt 1 – usuwanie zakłóceń impulsowych z nagrań muzycznych - w MATLAB lub Python
+W pliku 02.wav zapisany jest ok. 20 sekundowy fragment nagrania muzycznego z dodanymi 
+sztucznie zakłóceniami impulsowymi (próbki reprezentowana przez 16-bitowe słowa, częstotliwość
+próbkowania 22050 Hz). Napisz program usuwający zakłócenia z nagrań muzycznych.
 Procedura eliminacji zakłóceń:
 a) Przyjąć model autoregresyjny rzędu r (r = 4) do lokalnej reprezentacji dynamiki sygnału.
 b) Stosując algorytm ważonych najmniejszych kwadratów (EW-LS) śledzić na bieżąco zmiany
@@ -17,7 +17,7 @@ mogą wystąpić serie zakłóceń obejmujące maksymalnie 4 próbki. Jakość o
 odsłuchowo.
 Forma zaliczenia projektu 1:
 - Sprawozdanie zawierające opis zastosowanych procedur i uzasadnienie przyjętych wartości
-„nastaw” algorytmów, wykresy przebiegu parametrów modelu itp.
+„nastaw” algorytmów, wykresy przebiegu parametrów modelu itp. - latex
 - Kody źródłowe napisanych programów służących do rozwiązania zadań
 (narzędzie programistyczne dowolne)
 - Wynikowy plik typu waw będący wynikiem pracy zastosowanych procedur odszumiających
