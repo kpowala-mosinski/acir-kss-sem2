@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Parametry obliczen
+# parametry obliczen
 step_size = 0.1
 tol_x = 1e-3
 tol_f = 1e-3

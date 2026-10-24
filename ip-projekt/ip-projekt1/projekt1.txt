@@ -1,0 +1,25 @@
+Projekt 1 – usuwanie zakłóceń impulsowych z nagrań muzycznych
+W plikach typu ‘wav’ zapisane są ok. 20 sekundowe fragmenty nagrań muzycznych z dodanymi 
+(sztucznie) zakłóceniami impulsowymi (próbki reprezentowana przez 16-bitowe słowa, częstotliwość
+próbkowania 22050 Hz). Napisać program usuwający zakłócenia z nagrań muzycznych.
+Procedura eliminacji zakłóceń:
+a) Przyjąć model autoregresyjny rzędu r (r = 4) do lokalnej reprezentacji dynamiki sygnału.
+b) Stosując algorytm ważonych najmniejszych kwadratów (EW-LS) śledzić na bieżąco zmiany
+parametrów ai (i = 1 , ... , r) modelu AR(r) Zastosować detektor zakłóceń impulsowych kwestionujący
+w każdym kroku algorytmu EW-LS te próbki y(k) sygnału, dla których bezwzględna wartość błędu
+predykcji przekracza trzykrotnie lokalną wartość średniego odchylenia standardowego błędu
+resztowego.
+c) Zastosować metodę interpolacji liniowej do rekonstrukcji próbek zakwestionowanych przez
+detektor (zakwestionowaną próbkę y*(k) zastąpić średnią arytmetyczną sąsiednich, poprawnych
+próbek sygnału): y*(k) ¬ 0.5 [ y(k – 1) + y(k + 1)].
+Implementując procedurę usuwania trzasków należy przyjąć założenie, że w przetwarzanych danych
+mogą wystąpić serie zakłóceń obejmujące maksymalnie 4 próbki. Jakość odszumiania należy ocenić
+odsłuchowo.
+Forma zaliczenia projektu 1:
+- Sprawozdanie zawierające opis zastosowanych procedur i uzasadnienie przyjętych wartości
+„nastaw” algorytmów, wykresy przebiegu parametrów modelu itp.
+- Kody źródłowe napisanych programów służących do rozwiązania zadań
+(narzędzie programistyczne dowolne)
+- Wynikowy plik typu waw będący wynikiem pracy zastosowanych procedur odszumiających
+
+W sprawozdaniu poza krótkim opisem programu proszę umieścić wykresy danych przed odszumianiem, po odszumianiu, przebiegi parametrów modelu AR, przebieg progu kwalifikującego próbkę jako błędną.
