@@ -1,36 +1,19 @@
-"""
-Projekt 1 - usuwanie zakłóceń impulsowych z nagrań muzycznych.
-
-Procedura:
-  a) lokalny model AR(r), r = 4:  y(k) = sum_i a_i * y(k-i) + e(k)
-  b) estymacja parametrów a_i algorytmem EW-LS (ważone wykładniczo najmniejsze
-     kwadraty, zapominanie lambda) + detektor: próbka y(k) jest kwestionowana,
-     gdy |e(k)| > 3 * sigma_e(k), gdzie sigma_e to lokalne (ważone wykładniczo)
-     odchylenie standardowe błędu resztowego,
-  c) rekonstrukcja zakwestionowanych próbek interpolacją liniową między
-     najbliższymi poprawnymi sąsiadami (dla 1 próbki: 0.5[y(k-1) + y(k+1)]).
-Dopuszczalne są serie zakłóceń o długości do 4 próbek.
-
-Uruchomienie:  python ip-proj1.py [plik_wejściowy.wav] [--show]
-"""
-
+# ip projekt 1 Karolina Grodz 188664, Kajetan Powala-Mosinski 193054, acir kss1
 import os
 import sys
 import wave
-
+from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ---------------------------------------------------------------- nastawy ----
-R = 4              # rząd modelu AR
-LAMBDA = 0.999     # współczynnik zapominania EW-LS (pamięć ~ 1/(1-lambda) = 1000 próbek)
-LAMBDA_SIG = 0.99  # współczynnik zapominania estymatora wariancji błędu (~100 próbek)
-MU = 3.0           # krotność odchylenia standardowego - próg detekcji
-MAX_BURST = 4      # maksymalna długość serii zakłóceń
-DELTA = 100.0      # inicjalizacja macierzy kowariancji P(0) = DELTA * I
-P_TRACE_MAX = 1e4  # górne ograniczenie śladu macierzy P
-WARMUP = 500       # liczba próbek na zbieżność estymatorów (bez detekcji)
-
+R = 4
+LAMBDA = 0.999
+M = 20
+MU = 3.0
+MAX_BURST = 4
+DELTA = 100.0
+P_TRACE_MAX = 1e4
+WARMUP = 500 
 
 def read_wav(path):
     with wave.open(path, "rb") as w:
@@ -38,7 +21,6 @@ def read_wav(path):
         fs = w.getframerate()
         y = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")
     return fs, y.astype(np.float64) / 32768.0
-
 
 def write_wav(path, fs, y):
     data = np.clip(np.round(y * 32768.0), -32768, 32767).astype("<i2")
@@ -48,49 +30,29 @@ def write_wav(path, fs, y):
         w.setframerate(fs)
         w.writeframes(data.tobytes())
 
-
 def multistep_gain(theta, h):
-    """Stosunek wariancji błędu predykcji h-krokowej do wariancji błędu
-    predykcji 1-krokowej dla modelu AR: sum_{i=0}^{h-1} psi_i^2, gdzie psi_i
-    to odpowiedź impulsowa filtru 1/A(z)."""
     psi = [1.0]
     for i in range(1, h):
         psi.append(sum(theta[j] * psi[i - 1 - j] for j in range(min(i, R))))
     return sum(p * p for p in psi)
 
-
 def burst_length(x, y, k, theta, sigma2):
-    """Wyznacza długość m (1..MAX_BURST) serii zakłóceń zaczynającej się
-    w zakwestionowanej próbce y(k).
-
-    Seria kończy się na pierwszej próbce y(k+m) zgodnej z predykcją
-    (m+1)-krokową wyznaczoną z poprawnej przeszłości sygnału (próbki
-    k..k+m-1 zastąpione predykcją). Próg skalowany jest wariancją błędu
-    predykcji wielokrokowej. Zwraca 0, jeśli w zakresie MAX_BURST próbek nie
-    ma zgodnej próbki - wtedy y(k) nie jest uznawana za zakłócenie.
-    """
     hist = list(x[k - R:k])
     for m in range(MAX_BURST + 1):
         if k + m >= len(y):
-            return m                # seria na końcu nagrania
+            return m
         pred = theta @ hist[:-R - 1:-1]
         if m > 0 and abs(y[k + m] - pred) <= MU * np.sqrt(sigma2 * multistep_gain(theta, m + 1)):
             return m
         hist.append(pred)
     return 0
 
-
 def remove_clicks(y):
-    """EW-LS dla modelu AR(R) z detektorem 3-sigma i interpolacją liniową.
-
-    Zwraca: sygnał po odszumieniu, maskę zakwestionowanych próbek, historię
-    parametrów a_i(k), błąd predykcji e(k) oraz próg detekcji MU * sigma_e(k).
-    """
     n = len(y)
-    x = y.copy()                    # sygnał wynikowy (próbki zakwestionowane zinterpolowane)
-    theta = np.zeros(R)             # parametry [a_1 ... a_R]
+    x = y.copy()
+    theta = np.zeros(R)
     P = DELTA * np.eye(R)
-    sigma2 = np.var(y[:WARMUP])     # wstępna wariancja błędu resztowego
+    e2_window = deque(maxlen=M)
 
     flags = np.zeros(n, dtype=bool)
     thetas = np.zeros((n, R))
@@ -101,14 +63,13 @@ def remove_clicks(y):
     while k < n:
         phi = x[k - 1:k - R - 1:-1] if k > R else x[k - 1::-1]   # [x(k-1) ... x(k-R)]
         e = y[k] - theta @ phi
+        sigma2 = sum(e2_window) / len(e2_window) if e2_window else e * e
         thr = MU * np.sqrt(sigma2)
         errors[k], thresholds[k], thetas[k] = e, thr, theta
 
         if k >= WARMUP and abs(e) > thr:
             m = burst_length(x, y, k, theta, sigma2)
             if m > 0:
-                # interpolacja liniowa między x(k-1) a y(k+m);
-                # dla m = 1: x(k) = 0.5 * [x(k-1) + y(k+1)]
                 left = x[k - 1]
                 right = y[k + m] if k + m < n else left
                 x[k:k + m] = left + (right - left) * np.arange(1, m + 1) / (m + 1)
@@ -117,35 +78,28 @@ def remove_clicks(y):
                 thetas[k:k + m] = theta
                 for i in range(k + 1, k + m):
                     errors[i] = y[i] - theta @ x[i - 1:i - R - 1:-1]
-                # model nie jest aktualizowany na próbkach zakwestionowanych
                 k += m
                 continue
 
-        # krok EW-LS (postać symetryczna - P musi pozostać symetryczna
-        # i dodatnio określona, inaczej błędy numeryczne prowadzą do rozbieżności)
         Pphi = P @ phi
         den = LAMBDA + phi @ Pphi
         theta = theta + Pphi * (e / den)
         P = (P - np.outer(Pphi, Pphi) / den) / LAMBDA
         P = 0.5 * (P + P.T)
-        # ochrona przed "rozdmuchaniem" P (estimator windup) w kierunkach
-        # słabo pobudzanych przez silnie skorelowany sygnał audio
         tr = np.trace(P)
         if tr > P_TRACE_MAX:
             P *= P_TRACE_MAX / tr
-        sigma2 = LAMBDA_SIG * sigma2 + (1.0 - LAMBDA_SIG) * e * e
+        e2_window.append(e * e)
         thetas[k] = theta
         k += 1
 
     return x, flags, thetas, errors, thresholds
-
 
 def plot_results(fs, y, y_clean, flags, thetas, errors, thresholds, out_dir, show):
     os.makedirs(out_dir, exist_ok=True)
     t = np.arange(len(y)) / fs
     idx = np.flatnonzero(flags)
 
-    # fragment do powiększenia: okolice zakłócenia o największej amplitudzie
     c = np.argmax(np.abs(y - y_clean))
     zoom = slice(max(c - 100, 0), min(c + 100, len(y)))
 
@@ -203,7 +157,6 @@ def plot_results(fs, y, y_clean, flags, thetas, errors, thresholds, out_dir, sho
     if show:
         plt.show()
 
-
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     here = os.path.dirname(os.path.abspath(__file__))
@@ -214,7 +167,6 @@ def main():
     y_clean, flags, thetas, errors, thresholds = remove_clicks(y)
     write_wav(out_path, fs, y_clean)
 
-    # statystyka długości wykrytych serii
     edges = np.diff(np.concatenate(([0], flags.astype(np.int8), [0])))
     lengths = np.flatnonzero(edges == -1) - np.flatnonzero(edges == 1)
     print(f"Plik: {in_path}, fs = {fs} Hz, {len(y)} próbek ({len(y) / fs:.1f} s)")
@@ -225,7 +177,6 @@ def main():
 
     plot_results(fs, y, y_clean, flags, thetas, errors, thresholds,
                  os.path.join(here, "wykresy"), "--show" in sys.argv)
-
 
 if __name__ == "__main__":
     main()

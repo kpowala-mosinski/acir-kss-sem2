@@ -152,7 +152,6 @@ volatile sig_atomic_t running = 1;
 
 void stopProgram(int sig) { (void)sig; running = 0; }
 
-//****************************************
 void setMABAddr(int addr) //BCM enumeration
 {
        digitalWrite(AG,1);
@@ -268,7 +267,7 @@ int main (void)
      unsigned int period = 0, newPeriod, now, lastStep, lastADC;
 
 
-     if (wiringPiSetupGpio() < 0) { //Broadcom enumeration
+     if (wiringPiSetupGpio() < 0) {
           fprintf (stderr, "wiringPi setup error (try sudo)\n") ;
           return 1 ;
      }
