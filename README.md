@@ -1,5 +1,5 @@
-## pg-acir-kss1
-# nao-lab
+# pg-acir-kss1
+## nao-lab
 nao - numeryczne algorytmy optymalizacji, laboratorium
 - nao-lab1
 - nao-lab2
@@ -8,12 +8,12 @@ nao - numeryczne algorytmy optymalizacji, laboratorium
 - nao-lab5
 - nao-lab6
 
-# ip-projekt
+## ip-projekt
 ip - identyfikacja procesow, projekt
 - ip-proj1
 - ip-proj2
 
-# ksa-lab
+## ksa-lab
 ksa - komputerowe systemy automatyki, laboratorium
 - ksa-lab1
 - ksa-lab2
@@ -22,12 +22,12 @@ ksa - komputerowe systemy automatyki, laboratorium
 - ksa-lab5
 - ksa-lab6
 
-# simp-projekt
+## simp-projekt
 simp - sterowanie i monitorowanie procesow, projekt
 - simp-proj1
 - simp-proj2
 
-# sa-projekt
+## sa-projekt
 sa - sterowanie adaptacyjne, projekt
 - sa-proj1
 - sa-proj2
