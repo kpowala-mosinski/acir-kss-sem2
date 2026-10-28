@@ -6,15 +6,16 @@ from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
 
-R = 4
-LAMBDA = 0.999
-M = 20
-MU = 3.0
-MAX_BURST = 4
-DELTA = 100.0
-P_TRACE_MAX = 1e4
-WARMUP = 500 
+R = 4 # rzad modelu ar
+LAMBDA = 0.999 # wspolczynnik zampominania ew-ls
+M = 20 # okno estymatora wariancji bledu predykcji
+MU = 3.0 # prog detekcji
+MAX_BURST = 4 # max dlugosc serii zaklocen
+DELTA = 100.0 # inicjalizacja macierzy kowariancji
+P_TRACE_MAX = 1e4 # gorne ograniczenie sladu macierzy p
+WARMUP = 500 # liczba probek na zbieznosc estymatorow
 
+# odczytanie pliku wav
 def read_wav(path):
     with wave.open(path, "rb") as w:
         assert w.getsampwidth() == 2 and w.getnchannels() == 1
@@ -22,6 +23,7 @@ def read_wav(path):
         y = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")
     return fs, y.astype(np.float64) / 32768.0
 
+# zapisywanie pliku wav
 def write_wav(path, fs, y):
     data = np.clip(np.round(y * 32768.0), -32768, 32767).astype("<i2")
     with wave.open(path, "wb") as w:
@@ -30,12 +32,14 @@ def write_wav(path, fs, y):
         w.setframerate(fs)
         w.writeframes(data.tobytes())
 
+# obliczanie wskaznika wielokrokowego
 def multistep_gain(theta, h):
     psi = [1.0]
     for i in range(1, h):
-        psi.append(sum(theta[j] * psi[i - 1 - j] for j in range(min(i, R))))
+        psi.append(sum(theta[j] * psi[i - 1 - j] for j in range(min(i, R)))) # sum_{i=0}^{h-1} psi_i^2
     return sum(p * p for p in psi)
 
+# wyznaczenie dlugosci serii zaklocen od y(k)
 def burst_length(x, y, k, theta, sigma2):
     hist = list(x[k - R:k])
     for m in range(MAX_BURST + 1):
@@ -50,7 +54,7 @@ def burst_length(x, y, k, theta, sigma2):
 def remove_clicks(y):
     n = len(y)
     x = y.copy()
-    theta = np.zeros(R)
+    theta = np.zeros(R) # [a_1, ..., a_R]
     P = DELTA * np.eye(R)
     e2_window = deque(maxlen=M)
 
@@ -69,7 +73,7 @@ def remove_clicks(y):
 
         if k >= WARMUP and abs(e) > thr:
             m = burst_length(x, y, k, theta, sigma2)
-            if m > 0:
+            if m > 0: # interpolacja liniowa miedzy x(k-1) a y(k+m), dla m = 1: x(k) = 0.5 * [x(k-1) + y(k+1)]
                 left = x[k - 1]
                 right = y[k + m] if k + m < n else left
                 x[k:k + m] = left + (right - left) * np.arange(1, m + 1) / (m + 1)
@@ -95,6 +99,7 @@ def remove_clicks(y):
 
     return x, flags, thetas, errors, thresholds
 
+# wykresy
 def plot_results(fs, y, y_clean, flags, thetas, errors, thresholds, out_dir, show):
     os.makedirs(out_dir, exist_ok=True)
     t = np.arange(len(y)) / fs
