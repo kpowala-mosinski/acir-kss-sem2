@@ -1,0 +1,114 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{polski}
+\usepackage[polish, bidi=basic, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts]{polish}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{\textbf{Komputerowe systemy automatyki II }\\Ćw. 4 - sterowanie z wykorzystaniem komputera z systemem LINUX}
+\author{Kajetan Powała-Mosiński i Karolina Grodź}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Cel ćwiczenia}
+Zadanie polegało na napisaniu programu w języku C dla minikomputera Raspberry Pi, który zintegruje się z edukacyjną płytką rozszerzeń MAB-94. Program miał cyklicznie odczytywać dane z potencjometru za pomocą przetwornika ADC, wyświetlać wynik na wyświetlaczu 7-segmentowym oraz linijce LED, a także sterować prędkością silnika krokowego proporcjonalnie do tej wartości (uwzględniając zmianę kierunku na podstawie przełącznika DIP).
+
+\section{Ogólny opis układu}
+Zestaw MAB-94 komunikuje się z Raspberry Pi bezpośrednio przez piny GPIO, obsługiwane w kodzie przez bibliotekę \texttt{wiringPi}. Sprzęt korzysta z wirtualnej, równoległej szyny danych. Dostęp do poszczególnych modułów (silnik, przetwornik ADC, wyświetlacz) realizowany jest poprzez wystawienie 3-bitowego adresu na liniach A0--A2 i sprzętowe zatwierdzenie operacji krótkimi impulsami sterującymi odczytem lub zapisem.
+
+\section{Opis najważniejszych elementów programu}
+Program został podzielony na funkcje odpowiedzialne za komunikację sprzętową oraz logikę sterowania. Najważniejsze z nich to:
+
+\begin{itemize}
+    \item \textbf{\texttt{outMAB()} i \texttt{inMAB()}} -- fundamentalne funkcje obsługujące szynę. Ustawiają odpowiedni adres modułu na płytce MAB, po czym wpisują lub odczytują 8-bitowe dane z przypisanych pinów GPIO.
+\begin{lstlisting}[language=C]
+void outMAB(int addr, int data) {
+    setMABAddr(addr);
+    writeMAB(data);
+    delayMicroseconds(BUS_DELAY_US);
+    digitalWrite (nWR, 0);
+    delayMicroseconds(BUS_DELAY_US);
+    digitalWrite (nWR, 1);
+    delayMicroseconds(BUS_DELAY_US);
+}
+\end{lstlisting}
+    
+    \item \textbf{\texttt{readADC()}} -- funkcja dokonująca pomiaru. Inicjuje konwersję na adresie przetwornika, a następnie w bezpiecznej pętli z limitem czasu czeka na flagę zakończenia przetwarzania. Surowy wynik jest potem uśredniany w pętli głównej.
+\begin{lstlisting}[language=C]
+int readADC(void) {
+    unsigned int t0;
+    outMAB(4, addr4 & ~ADCstart);
+    delayMicroseconds(20);
+    outMAB(4, addr4 | ADCstart);
+    delayMicroseconds(20);
+
+    t0 = micros();
+    while ( ((inMAB(4) & IACstat) ? 1 : 0) != ADC_READY_LEVEL ) {
+        if ((unsigned int)(micros() - t0) > ADC_TIMEOUT_US) break;
+        delayMicroseconds(20);
+    }
+    return inMAB(2);
+}
+\end{lstlisting}
+    
+    \item \textbf{\texttt{stepPeriod(adc)}} -- przelicza odczytaną wartość ADC na interwał czasowy w mikrosekundach. Funkcja ma zdefiniowaną strefę martwą -- dla bardzo małych wartości ADC zwraca 0, wyłączając wysterowanie silnika.
+\begin{lstlisting}[language=C]
+unsigned int stepPeriod(int adc) {
+    unsigned int sps;
+    if (adc < ADC_DEADZONE) return 0;
+    sps = SPS_MIN + (unsigned int)(SPS_MAX - SPS_MIN) * 
+          (unsigned int)(adc - ADC_DEADZONE) / (unsigned int)(255 - ADC_DEADZONE);
+    return 1000000u / sps;
+}
+\end{lstlisting}
+    
+    \item \textbf{Asynchroniczna pętla główna (\texttt{while(running)})} -- program nie korzysta z funkcji blokujących typu \texttt{delay()}. Zamiast tego na bieżąco sprawdza aktualny czas systemowy funkcją \texttt{micros()} i wykonuje określone akcje (np. krok silnika) dopiero, gdy minie wymagana liczba mikrosekund.
+\begin{lstlisting}[language=C]
+while (running) {
+    now = micros();
+    if (period != 0 && (unsigned int)(now - lastStep) >= period) {
+        lastStep += period;
+        if ((unsigned int)(now - lastStep) >= period) lastStep = now;
+        phase = cw ? (phase + 1) & 3 : (phase + 3) & 3;
+        outMAB(0, OPh_seq[phase] | OKB_OFF);
+    }
+    // ... [odczyt ADC i aktualizacja diod] ...
+    delayMicroseconds(200);
+}
+\end{lstlisting}
+\end{itemize}
+
+\section{Wnioski}
+Oprogramowanie z powodzeniem zrealizowało wszystkie punkty zadania. Bezpośrednie sterowanie pinami GPIO pozwoliło na sprawną integrację z modułami płytki MAB-94. Zastosowanie nieblokującego odmierzania czasu oraz cyfrowe uśrednianie wyników z ADC okazały się kluczowe dla zachowania płynnej, bezproblemowej pracy silnika krokowego.
+
+\end{document}
