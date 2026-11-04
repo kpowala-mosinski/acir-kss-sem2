@@ -51,6 +51,7 @@ def burst_length(x, y, k, theta, sigma2):
         hist.append(pred)
     return 0
 
+# glowny algorytm
 def remove_clicks(y):
     n = len(y)
     x = y.copy()
