@@ -1,0 +1,116 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{polski}
+\usepackage[polish, bidi=basic, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts]{polish}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{\textbf{Sprawozdanie z laboratorium: Podstawy Programowania}\\Kalkulator Odwrotnej Notacji Polskiej (ONP) na mikrokontroler 80C552}
+\author{Karolina Grodź, Kajetan Powała-Mosinski}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Cel ćwiczenia}
+Zadaniem laboratoryjnym było zaprojektowanie i napisanie w języku asembler (rodzina MCS-51) kalkulatora działającego w Odwrotnej Notacji Polskiej (ONP). Program miał obsługiwać liczby całkowite z zakresu 0-255, podstawowe operatory arytmetyczne (\texttt{+}, \texttt{-}, \texttt{*}, \texttt{/}) oddzielane spacją oraz klawisz \texttt{Enter} do obliczania wyniku. Dodatkowo dodano implementację obsługi błędów, w tym: braku argumentów, przekroczenia zakresu, dzielenia przez zero, przepełnienia stosu oraz wpisania nieznanego znaku.
+
+\section{Ogólny opis środowiska}
+Program uruchamiany jest na pakiecie uruchomieniowym wyposażonym w mikrokontroler 80C552. Do komunikacji z użytkownikiem program wykorzystuje interfejs szeregowy w standardzie RS232 oraz terminal komputerowy (np. Tera Term). Ponieważ na płytce znajduje się zintegrowany system operacyjny w pamięci EPROM, oprogramowanie korzysta z gotowych procedur systemowych (API) udostępnionych pod konkretnymi adresami w pamięci, takich jak \texttt{cin} (0x7F - odczyt znaku), \texttt{cout} (0x7D - wypisanie znaku) oraz \texttt{newline} (0x95).
+
+\section{Analiza najważniejszych elementów programu}
+Ze względu na specyfikę notacji ONP, kluczowym elementem programu było stworzenie niezależnego, programowego stosu dla obliczeń oraz implementacja logiki bezpośrednio na rejestrach mikrokontrolera.
+
+\begin{itemize}
+    \item \textbf{Obsługa dedykowanego stosu kalkulatora} - Zamiast używać wbudowanego stosu procesora (\texttt{SP}), który obsługuje skoki i powroty z podprogramów, zdefiniowano osobny bufor w pamięci RAM (od adresu \texttt{40H}). Funkcje \texttt{push\_a} i \texttt{pop\_a} korzystają ze wskaźnika \texttt{wsk}, adresowania pośredniego (\texttt{@R0}) i ustawiają flagę przeniesienia \texttt{C} w przypadku przepełnienia.
+\begin{lstlisting}
+push_a:
+    mov R1,A
+    mov A,wsk
+    cjne A,#buf_kon,push_ok
+    setb C                 ; flaga C=1 gdy stos jest pelny
+    ret
+push_ok:
+    mov R0,A
+    mov A,R1
+    mov @R0,A              ; zapis pod adres ze wskaznika
+    inc wsk
+    clr C
+    ret
+\end{lstlisting}
+
+    \item \textbf{Operacje arytmetyczne i detekcja błędów (np. dzielenie)} -- Każdy operator pobiera z własnego stosu dwa argumenty (lewy do \texttt{R4}, prawy do \texttt{R5}). Poniżej przedstawiono implementację dzielenia, która dodatkowo weryfikuje próbę dzielenia przez 0 przed wykonaniem instrukcji \texttt{div AB}.
+\begin{lstlisting}
+op_dziel:
+    cjne A,#2FH,blad_znak  ; jesli to nie znak '/', rzuc blad
+    lcall pobierz
+    jc blad_arg            ; brak wymaganych dwoch argumentow
+    mov A,R5
+    jz blad_zero           ; sprawdzenie: dzielenie przez 0
+    mov A,R4
+    mov B,R5
+    div AB                 ; iloraz zapisywany w A
+    sjmp odloz             ; odlozenie wyniku na stos
+\end{lstlisting}
+    
+    \item \textbf{Konwersja z systemu binarnego na dziesiętny (ASCII)} -- Wynik wszystkich operacji mieści się w jednym rejestrze (0--255). Aby wyświetlić go na ekranie terminala, program musi wyodrębnić setki, dziesiątki i jedności poprzez wielokrotne dzielenie przez 100 i 10.
+\begin{lstlisting}
+wynik:
+    mov B,#100
+    div AB                 ; A = setki, B = reszta
+    mov R6,A               
+    mov A,B
+    mov B,#10
+    div AB                 ; A = dziesiatki, B = jednosci
+    mov R5,A
+    mov R4,B
+    ; [...] W dalszej czesci kodu program dodaje offset #30H 
+    ; do kazdej cyfry (konwersja na ASCII) i wygasza zera wiodace
+\end{lstlisting}
+
+    \item \textbf{Wczytywanie liczb wielocyfrowych} -- Gdy program odbiera ciąg znaków, cyfry muszą być łączone w jedną liczbę algorytmem $nowa\_wartosc = (stara\_wartosc \times 10) + nowa\_cyfra$. Program sprawdza po drodze, czy iloczyn nie wykracza poza rozmiar rejestru 8-bitowego.
+\begin{lstlisting}
+    mov A,R3               ; R3 - wczytywana do tej pory liczba
+    mov B,#10
+    mul AB
+    xch A,B                ; sprawdzenie starszego bajtu iloczynu
+    jnz cyf_blad           ; jesli B!=0, wynik > 255
+    xch A,B                
+    add A,R6               ; dodanie nowo wczytanej cyfry (z R6)
+    jc cyf_blad
+    mov R3,A
+\end{lstlisting}
+\end{itemize}
+
+\section{Wnioski}
+Opracowanie kalkulatora w Odwrotnej Notacji Polskiej w środowisku asemblera mikrokontrolera 8051 wymaga precyzyjnego zarządzania pamięcią. Stworzenie dedykowanego, programowego bufora jako stosu uchroniło program przed konfliktami ze stosem sprzętowym wykorzystywanym przez podprogramy. Skrupulatna implementacja mechanizmów detekcji błędów na podstawie flag procesora (\texttt{C}, \texttt{Z}) gwarantuje stabilność kalkulatora, poprawnie wychwytując sytuacje takie jak nadmiar liczbowy, dzielenie przez zero czy niepoprawną formułę wejściową.
+
+\end{document}
