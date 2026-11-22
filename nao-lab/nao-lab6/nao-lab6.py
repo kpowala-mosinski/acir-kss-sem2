@@ -111,8 +111,6 @@ for w in warianty:
     
     for idx, start in enumerate([w["start1"], w["start2"]]):
         P_opt, sukces = powell(f_celu, start)
-        
-        # Wymuszamy zaokrąglenie dla czystości logów
         P_opt = np.round(P_opt, 4)
         K_min = round(KS(P_opt), 2)
         
