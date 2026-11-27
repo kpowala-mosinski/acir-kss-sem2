@@ -94,11 +94,10 @@ def report_compression(wav_path, bin_path, m):
     ratio = orig_size / comp_size
     reduction = (1.0 - comp_size / orig_size) * 100.0
     
-    print(f"--- Wyniki dla kwantyzacji m = {m} bitów ---")
+    print(f"Wyniki dla kwantyzacji m = {m} bitów")
     print(f"Rozmiar oryginału (WAV): {orig_size} B")
     print(f"Rozmiar skompresowany:   {comp_size} B")
     print(f"Stopień kompresji:       {ratio:.2f} : 1 (oszczędność miejsca: {reduction:.1f}%)\n")
-
 
 def transmitter_skeleton(y, m=2):
     window = okno_wagowe(N)
